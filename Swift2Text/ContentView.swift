@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct ContentView: View {
+    @AppStorage("defaultAppDirectory") private var defaultAppDirectory: String = ""
+    @AppStorage("defaultExportDirectory") private var defaultExportDirectory: String = ""
     @State private var directoryPath: String = ""
     @State private var combinedText: String = ""
     @State private var isProcessing: Bool = false
@@ -19,10 +21,9 @@ struct ContentView: View {
                 selectDirectory()
             }
             .padding([.leading, .top, .trailing])
-            
             .disabled(isProcessing)
             
-            if directoryPath != "" {
+            if !directoryPath.isEmpty {
                 Text("Selected Directory: \(directoryPath)")
                     .padding([.leading, .top, .trailing])
             }
@@ -30,18 +31,35 @@ struct ContentView: View {
             Toggle("Include Subdirectories", isOn: $includeSubdirectories)
                 .padding([.leading, .top, .trailing])
             
-            if isProcessing {
-                ProgressView("Processing...")
-                    .padding()
-                    .progressViewStyle(.linear)
-            } else {
+            
+            HStack {
+                Spacer()
+                
+                if isProcessing {
+                    ProgressView()
+                        .padding(.horizontal)
+                        .progressViewStyle(.circular)
+                        .controlSize(.mini)
+                        .opacity(0.0)
+                }
+                
                 Button("Combine and Export Text") {
                     combineAndExportText()
                 }
-                .padding()
                 .disabled(isProcessing)
+                
+                if isProcessing {
+                    ProgressView()
+                        .padding(.horizontal)
+                        .progressViewStyle(.circular)
+                        .controlSize(.small)
+                }
+                
+                Spacer()
             }
+            .padding()
         }
+        .frame(width: 300, height: directoryPath.isEmpty ? 150 : 200) // Adjusted frame size
     }
 
     func selectDirectory() {
@@ -50,8 +68,14 @@ struct ContentView: View {
         panel.canChooseFiles = false
         panel.allowsMultipleSelection = false
 
+        if !defaultAppDirectory.isEmpty {
+            panel.directoryURL = URL(fileURLWithPath: defaultAppDirectory)
+        }
+
         if panel.runModal() == .OK, let url = panel.url {
             directoryPath = url.path
+            // Save to default app directory
+            defaultAppDirectory = url.path
         }
     }
 
@@ -100,18 +124,23 @@ struct ContentView: View {
         let savePanel = NSSavePanel()
         savePanel.allowedContentTypes = [.text]
         savePanel.nameFieldStringValue = "CombinedText.txt"
-        
+
+        if !defaultExportDirectory.isEmpty {
+            savePanel.directoryURL = URL(fileURLWithPath: defaultExportDirectory)
+        }
+
         if savePanel.runModal() == .OK, let url = savePanel.url {
             do {
                 try text.write(to: url, atomically: true, encoding: .utf8)
                 print("File saved successfully!")
+                // Save to default export directory
+                defaultExportDirectory = url.deletingLastPathComponent().path
             } catch {
                 print("Error saving file: \(error.localizedDescription)")
             }
         }
     }
 }
-
 
 #Preview {
     ContentView()
