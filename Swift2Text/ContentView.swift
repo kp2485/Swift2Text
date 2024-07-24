@@ -59,7 +59,6 @@ struct ContentView: View {
             }
             .padding()
         }
-        .frame(width: 300, height: directoryPath.isEmpty ? 150 : 200) // Adjusted frame size
     }
 
     func selectDirectory() {
